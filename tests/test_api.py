@@ -216,6 +216,7 @@ def test_index_contains_settings_menu_and_about_modal(monkeypatch):
         assert response.status_code == 200
         assert 'id="menu-new-game"' in html
         assert 'id="menu-mode-toggle"' in html
+        assert "/slownikowo" in html
         assert "ABOUT ME" in html
         assert "WORDLE</h1>" in html
         assert 'id="about-modal"' in html

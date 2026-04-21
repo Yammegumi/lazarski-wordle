@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>S&#321;OWNIKOWO - Wordle PL</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main class="slownikowo-shell slownikowo-shell-compact">
+    <details id="settings-menu" class="settings-menu">
+        <summary class="settings-toggle" aria-label="Ustawienia">
+            &#9881;
+        </summary>
+        <nav class="settings-popover" aria-label="Menu ustawien">
+            <button id="menu-new-slownikowo-game" class="settings-link settings-action" type="button">NOWA GRA</button>
+            <a class="settings-link" href="{{ url_for('index') }}">WORDLE</a>
+        </nav>
+    </details>
+    <button id="about-trigger" class="about-trigger" type="button" aria-label="ABOUT ME">i</button>
+
+    <header class="slownikowo-topbar">
+        <h1 class="slownikowo-title">S&#321;OWNIKOWO</h1>
+    </header>
+
+    <section class="slownikowo-board">
+        <ul id="slownikowo-dots" class="slownikowo-dots" aria-label="Postep prob"></ul>
+
+        <div class="slownikowo-center">
+            <p id="slownikowo-status" class="status" aria-live="polite"></p>
+
+            <div class="slownikowo-stack">
+                <ul id="slownikowo-up-list" class="slownikowo-lane" aria-label="Slowa wczesniejsze"></ul>
+
+                <form id="slownikowo-form" class="slownikowo-form-flat" autocomplete="off">
+                    <input
+                        id="slownikowo-input"
+                        name="guess"
+                        type="text"
+                        placeholder="WPISZ SLOWO"
+                        aria-label="Wpisz slowo do zgadniecia"
+                        required
+                    >
+                    <button id="slownikowo-submit" type="submit">SPRAWDZ</button>
+                </form>
+
+                <ul id="slownikowo-down-list" class="slownikowo-lane" aria-label="Slowa pozniejsze"></ul>
+            </div>
+
+            <p id="slownikowo-attempts" class="slownikowo-attempts"></p>
+        </div>
+    </section>
+</main>
+
+<div id="slownikowo-toast" class="slownikowo-toast" hidden></div>
+<div id="about-modal" class="about-modal" hidden>
+    <div class="about-panel" role="dialog" aria-modal="true" aria-labelledby="about-title">
+        <button id="about-close" class="about-close" type="button" aria-label="Zamknij okno">&times;</button>
+        <img
+            class="about-logo"
+            src="{{ url_for('static', filename='images/logo_pl.svg') }}"
+            alt="Logo Uczelni Lazarskiego"
+        >
+        <h2 id="about-title">ABOUT ME</h2>
+        <p>
+            Projekt wykonany na potrzeb&#281; przedmiotu AI i analiza danych II - projekt prowadzonego przez
+            Wojciecha Draba.
+        </p>
+        <p>
+            Projekt zosta&#322; stworzony przez Mateusza &#321;askiego (numer studencki 53758) oraz Oliwi&#281; Regulsk&#261;
+            (numer studencki 53906).
+        </p>
+    </div>
+</div>
+
+<script id="slownikowo-config" type="application/json">
+    {{ {"maxAttempts": max_attempts}|tojson }}
+</script>
+<script src="{{ url_for('static', filename='slownikowo.js') }}"></script>
+</body>
+</html>

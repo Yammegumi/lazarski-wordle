@@ -33,7 +33,7 @@ const modeInfoNode = document.getElementById("mode-info");
 const settingsMenu = document.getElementById("settings-menu");
 const menuNewGameButton = document.getElementById("menu-new-game");
 const menuModeToggleButton = document.getElementById("menu-mode-toggle");
-const menuAboutButton = document.getElementById("menu-about");
+const aboutTriggerButton = document.getElementById("about-trigger");
 
 const aboutModal = document.getElementById("about-modal");
 const aboutCloseButton = document.getElementById("about-close");
@@ -379,8 +379,8 @@ if (menuModeToggleButton) {
     });
 }
 
-if (menuAboutButton) {
-    menuAboutButton.addEventListener("click", () => {
+if (aboutTriggerButton) {
+    aboutTriggerButton.addEventListener("click", () => {
         openAboutModal();
         closeSettingsMenu();
     });

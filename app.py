@@ -8,6 +8,14 @@ from typing import Any
 
 from flask import Flask, abort, jsonify, render_template, request
 
+from slownikowo_logic import (
+    SLOWNIKOWO_MAX_ATTEMPTS,
+    compare_word_positions,
+    load_slownikowo_words,
+    normalize_slownikowo_word,
+    prepare_slownikowo_words,
+    validate_slownikowo_guess,
+)
 from word_database import DEFAULT_DB_PATH, ensure_schema, get_connection, load_words_from_database
 from wordle_logic import (
     MAX_ATTEMPTS,
@@ -31,11 +39,20 @@ class GameState:
     status: str = "in_progress"
 
 
+@dataclass
+class SlownikowoGameState:
+    target_word: str
+    target_index: int
+    guesses: list[str] = field(default_factory=list)
+    status: str = "in_progress"
+
+
 # Build and configure the Flask application together with game and dictionary state.
 def create_app(
     words_path: str | Path = "words.txt",
     words_override: list[str] | None = None,
     db_path: str | Path = DEFAULT_DB_PATH,
+    slownikowo_words_override: list[str] | None = None,
 ) -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
     resolved_db_path = Path(db_path)
@@ -73,6 +90,14 @@ def create_app(
 
     easy_word_set = set(easy_words)
     games: dict[str, GameState] = {}
+
+    if slownikowo_words_override is None:
+        slownikowo_words = load_slownikowo_words()
+    else:
+        slownikowo_words = prepare_slownikowo_words(slownikowo_words_override)
+    slownikowo_word_set = set(slownikowo_words)
+    slownikowo_word_to_index = {word: index for index, word in enumerate(slownikowo_words)}
+    slownikowo_games: dict[str, SlownikowoGameState] = {}
 
     # Return a minimal dictionary entry shape when database metadata is unavailable.
     def _fallback_entry(word: str) -> dict[str, Any]:
@@ -173,6 +198,11 @@ def create_app(
             abort(404)
         return render_template("word_detail.html", entry=entry)
 
+    # Render the Slownikowo page where players guess one random dictionary word.
+    @app.get("/slownikowo")
+    def slownikowo() -> str:
+        return render_template("slownikowo.html", max_attempts=SLOWNIKOWO_MAX_ATTEMPTS)
+
     # Start a new game session in requested mode and return public game metadata.
     @app.post("/api/new-game")
     def new_game() -> tuple[Any, int] | Any:
@@ -250,6 +280,88 @@ def create_app(
             "mode": game.mode,
         }
         if game.status == "lost":
+            response["target_word"] = game.target_word
+
+        return jsonify(response)
+
+    # Start a Slownikowo session with a freshly randomized dictionary target word.
+    @app.post("/api/slownikowo/new-game")
+    def new_slownikowo_game() -> Any:
+        target_index = random.randrange(len(slownikowo_words))
+        target_word = slownikowo_words[target_index]
+        game_id = str(uuid.uuid4())
+        slownikowo_games[game_id] = SlownikowoGameState(
+            target_word=target_word,
+            target_index=target_index,
+        )
+        return jsonify(
+            {
+                "game_id": game_id,
+                "max_attempts": SLOWNIKOWO_MAX_ATTEMPTS,
+                "pool_size": len(slownikowo_words),
+            }
+        )
+
+    # Validate Slownikowo guess and return direction relative to current random target.
+    @app.post("/api/slownikowo/guess")
+    def slownikowo_guess() -> tuple[Any, int] | Any:
+        payload = request.get_json(silent=True) or {}
+        game_id = payload.get("game_id")
+        raw_guess = payload.get("guess")
+
+        if not isinstance(game_id, str) or not game_id:
+            return jsonify({"message": "Brak poprawnego game_id."}), 400
+        if not isinstance(raw_guess, str):
+            return jsonify({"message": "Brak poprawnego slowa."}), 400
+
+        game = slownikowo_games.get(game_id)
+        if game is None:
+            return jsonify({"message": "Nie znaleziono gry."}), 404
+
+        if game.status != "in_progress":
+            finished_response: dict[str, Any] = {
+                "message": "Gra jest juz zakonczona.",
+                "game_status": game.status,
+            }
+            if game.status in {"won", "lost"}:
+                finished_response["target_word"] = game.target_word
+            return jsonify(finished_response), 409
+
+        guess_word = normalize_slownikowo_word(raw_guess)
+        validation_error = validate_slownikowo_guess(guess_word, slownikowo_word_set)
+        if validation_error:
+            return jsonify({"message": validation_error}), 400
+
+        guess_index = slownikowo_word_to_index[guess_word]
+        direction = compare_word_positions(guess_index, game.target_index)
+        game.guesses.append(guess_word)
+        max_distance = max(1, len(slownikowo_words) - 1)
+        distance = abs(guess_index - game.target_index)
+        distance_ratio = distance / max_distance
+
+        if direction == "correct":
+            game.status = "won"
+            message = "Brawo! Odgadles haslo."
+        elif len(game.guesses) >= SLOWNIKOWO_MAX_ATTEMPTS:
+            game.status = "lost"
+            message = f"Koniec gry. Szukane haslo to: {game.target_word.upper()}."
+        elif direction == "up":
+            message = "To slowo jest wczesniej w slowniku niz haslo."
+        else:
+            message = "To slowo jest pozniej w slowniku niz haslo."
+
+        response: dict[str, Any] = {
+            "guess": guess_word,
+            "guess_index": guess_index,
+            "distance": distance,
+            "distance_ratio": distance_ratio,
+            "direction": direction,
+            "attempt": len(game.guesses),
+            "remaining_attempts": SLOWNIKOWO_MAX_ATTEMPTS - len(game.guesses),
+            "game_status": game.status,
+            "message": message,
+        }
+        if game.status in {"won", "lost"}:
             response["target_word"] = game.target_word
 
         return jsonify(response)

@@ -15,10 +15,11 @@
         <nav class="settings-popover" aria-label="Menu ustawien">
             <button id="menu-new-game" class="settings-link settings-action" type="button">NOWA GRA</button>
             <button id="menu-mode-toggle" class="settings-link settings-action" type="button">WERSJA &#321;ATWA</button>
+            <a class="settings-link" href="{{ url_for('slownikowo') }}">S&#321;OWNIKOWO</a>
             <a class="settings-link" href="{{ url_for('words_index') }}">S&#321;OWA</a>
-            <button id="menu-about" class="settings-link settings-action" type="button">ABOUT ME</button>
         </nav>
     </details>
+    <button id="about-trigger" class="about-trigger" type="button" aria-label="ABOUT ME">i</button>
 
     <h1 class="title">WORDLE</h1>
     <p id="mode-info" class="mode-info"></p>

@@ -33,10 +33,10 @@ body {
 }
 
 .settings-menu {
-    position: absolute;
+    position: fixed;
     top: 14px;
-    left: 10px;
-    z-index: 40;
+    left: 12px;
+    z-index: 260;
 }
 
 .settings-toggle {
@@ -57,6 +57,37 @@ body {
 
 .settings-toggle::-webkit-details-marker {
     display: none;
+}
+
+.about-trigger {
+    position: fixed;
+    top: 14px;
+    right: 12px;
+    z-index: 260;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: rgba(46, 55, 79, 0.9);
+    color: #f8f8f8;
+    font-size: 1.3rem;
+    border: 1px solid rgba(240, 242, 246, 0.16);
+    font-family: inherit;
+    font-weight: 700;
+    line-height: 1;
+    user-select: none;
+}
+
+.about-trigger:hover {
+    background: rgba(58, 70, 101, 0.94);
+}
+
+.about-trigger:focus-visible {
+    outline: 2px solid rgba(156, 199, 255, 0.85);
+    outline-offset: 2px;
 }
 
 .settings-popover {
@@ -287,6 +318,7 @@ body.modal-open {
 }
 
 .words-shell,
+.slownikowo-shell,
 .word-detail-shell {
     width: min(980px, 96vw);
     margin: 0 auto;
@@ -409,6 +441,202 @@ body.modal-open {
     grid-column: 1 / -1;
 }
 
+.slownikowo-shell {
+    max-width: 760px;
+}
+
+.slownikowo-shell-compact {
+    max-width: 1240px;
+}
+
+.slownikowo-topbar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 18px;
+    padding-top: 6px;
+}
+
+.slownikowo-title {
+    margin: 0;
+    text-align: center;
+    letter-spacing: 0.08em;
+    font-size: clamp(1.35rem, 2.8vw, 2.8rem);
+    font-weight: 800;
+}
+
+.slownikowo-back {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: rgba(240, 242, 246, 0.86);
+    border: 1px solid rgba(240, 242, 246, 0.22);
+    border-radius: 999px;
+    font-size: 1.2rem;
+}
+
+.slownikowo-back-placeholder {
+    width: 36px;
+    height: 36px;
+}
+
+.slownikowo-board {
+    position: relative;
+}
+
+.slownikowo-dots {
+    position: fixed;
+    top: 50%;
+    left: 12px;
+    transform: translateY(-50%);
+    width: 42px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(6px, 1.2vw, 12px);
+    z-index: 180;
+}
+
+.slownikowo-dot {
+    width: clamp(14px, 2.6vw, 34px);
+    height: clamp(14px, 2.6vw, 34px);
+    border-radius: 50%;
+    background: rgba(115, 118, 129, 0.42);
+}
+
+.slownikowo-dot.used {
+    background: #f0f2f6;
+}
+
+.slownikowo-center {
+    min-height: calc(100vh - 180px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.slownikowo-date {
+    margin: 0 0 6px;
+    text-align: center;
+    color: rgba(240, 242, 246, 0.68);
+    letter-spacing: 0.07em;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+
+.slownikowo-attempts {
+    margin: 8px 0 0;
+    text-align: center;
+    color: rgba(240, 242, 246, 0.7);
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+}
+
+.slownikowo-stack {
+    width: min(540px, 95vw);
+    min-height: 240px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.slownikowo-lane {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-height: 56px;
+}
+
+.slownikowo-lane-word {
+    font-size: clamp(1.55rem, 4.6vw, 3rem);
+    letter-spacing: 0.04em;
+    font-weight: 800;
+    text-transform: uppercase;
+    line-height: 1.05;
+    transition: color 160ms ease;
+}
+
+.slownikowo-form-flat {
+    margin: 0;
+    width: 100%;
+}
+
+.slownikowo-form-flat input {
+    width: 100%;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: rgba(240, 242, 246, 0.96);
+    text-align: center;
+    font-size: clamp(2rem, 5.5vw, 3.6rem);
+    letter-spacing: 0.05em;
+    font-weight: 800;
+    text-transform: uppercase;
+    outline: none;
+    padding: 2px 4px;
+}
+
+.slownikowo-form-flat input::placeholder {
+    color: rgba(169, 170, 172, 0.74);
+}
+
+.slownikowo-form-flat input:disabled {
+    font-size: clamp(1.35rem, 3.8vw, 2.6rem);
+}
+
+.slownikowo-form-flat button {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.slownikowo-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%) translateY(12px);
+    opacity: 0;
+    background: rgba(10, 14, 22, 0.96);
+    border: 1px solid rgba(240, 242, 246, 0.22);
+    border-radius: 999px;
+    padding: 10px 16px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: #f2f4f8;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+    z-index: 300;
+    pointer-events: none;
+    transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.slownikowo-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.slownikowo-toast.up {
+    border-color: rgba(130, 214, 136, 0.68);
+}
+
+.slownikowo-toast.down {
+    border-color: rgba(224, 205, 128, 0.72);
+}
+
 .word-detail-shell {
     max-width: 760px;
 }
@@ -485,6 +713,14 @@ body.modal-open {
         height: 38px;
     }
 
+    .about-trigger {
+        top: 10px;
+        right: 8px;
+        width: 38px;
+        height: 38px;
+        font-size: 1.2rem;
+    }
+
     .keyboard {
         width: min(98vw, 540px);
     }
@@ -512,8 +748,29 @@ body.modal-open {
     }
 
     .words-shell,
+    .slownikowo-shell,
     .word-detail-shell {
         padding-top: 14px;
+    }
+
+    .slownikowo-board {
+        position: relative;
+    }
+
+    .slownikowo-dots {
+        top: 50%;
+        left: 8px;
+        transform: translateY(-50%);
+        width: 38px;
+    }
+
+    .slownikowo-dot {
+        width: clamp(12px, 3.8vw, 24px);
+        height: clamp(12px, 3.8vw, 24px);
+    }
+
+    .slownikowo-center {
+        min-height: calc(100vh - 160px);
     }
 
     .meta-grid {
