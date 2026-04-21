@@ -1,100 +1,100 @@
 # Lazarski Wordle (Wordle PL)
 
-Aplikacja webowa w Flasku, ktora implementuje polska wersje gry Wordle wraz z trybem latwym bez polskich znakow.
+A Flask web application that implements a Polish Wordle-style game, including an easy mode without Polish diacritics.
 
-## Funkcje
+## Features
 
-- Rozgrywka Wordle 5x6 (5 liter, maksymalnie 6 prob).
-- Dwa tryby gry:
-  - `normal` (pelny polski alfabet z diakrytykami),
-  - `easy` (litery bez polskich znakow).
-- Ekranowa klawiatura + obsluga klawiatury fizycznej.
-- Widok slownika (`/words`) i widok szczegolow slowa (`/words/<word>`).
-- Integracja z baza SQLite oraz fallback do pliku `words.txt`.
-- Skrypt do synchronizacji slownika z archiwum Wordle.
+- Classic 5x6 Wordle gameplay (5 letters, up to 6 attempts).
+- Two game modes:
+  - `normal` (full Polish alphabet with diacritics),
+  - `easy` (letters without Polish diacritics).
+- On-screen keyboard and physical keyboard support.
+- Dictionary list page (`/words`) and single-word details page (`/words/<word>`).
+- SQLite-backed word source with fallback to `words.txt`.
+- Import script for syncing words from the Wordle archive.
 
-## Stos technologiczny
+## Tech Stack
 
 - Python 3.13
 - Flask
 - SQLite
-- Vanilla JavaScript + HTML + CSS
+- Vanilla JavaScript, HTML, CSS
 - Pytest
 
-## Struktura projektu
+## Project Structure
 
 ```text
 lazarski-wordle/
-├─ app.py                      # Flask app factory i endpointy HTTP/API
-├─ main.py                     # Punkt startowy do uruchomienia serwera
-├─ wordle_logic.py             # Walidacja slow i scoring zgadniec
-├─ word_database.py            # Schemat, migracje i dostep do SQLite
-├─ words.txt                   # Fallbackowy slownik tekstowy
-├─ data/
-│  └─ wordle_pl.sqlite3        # Lokalna baza slow
-├─ scripts/
-│  └─ sync_wordle_archive.py   # Import/synchronizacja danych z archiwum
-├─ static/
-│  ├─ app.js                   # Logika klienta i interakcje UI
-│  ├─ style.css                # Style aplikacji
-│  └─ images/logo_pl.svg       # Logo do modala "About"
-├─ templates/
-│  ├─ index.html               # Widok gry
-│  ├─ words.html               # Lista slow
-│  └─ word_detail.html         # Szczegoly pojedynczego slowa
-└─ tests/
-   ├─ test_api.py
-   ├─ test_database_schema.py
-   └─ test_wordle_logic.py
+|-- app.py                      # Flask app factory and HTTP/API endpoints
+|-- main.py                     # Server entry point
+|-- wordle_logic.py             # Word validation and guess scoring
+|-- word_database.py            # SQLite schema, migrations, and DB access
+|-- words.txt                   # Text dictionary fallback
+|-- data/
+|   `-- wordle_pl.sqlite3       # Local dictionary database
+|-- scripts/
+|   `-- sync_wordle_archive.py  # Archive importer/synchronizer
+|-- static/
+|   |-- app.js                  # Client-side game logic
+|   |-- style.css               # Application styles
+|   `-- images/logo_pl.svg      # About modal logo
+|-- templates/
+|   |-- index.html              # Game view
+|   |-- words.html              # Dictionary list view
+|   `-- word_detail.html        # Single word details view
+`-- tests/
+    |-- test_api.py
+    |-- test_database_schema.py
+    `-- test_wordle_logic.py
 ```
 
-## Uruchomienie lokalne
+## Local Run
 
-1. Zainstaluj zaleznosci:
+1. Install dependencies:
    ```bash
    python -m pip install -r requirements.txt
    ```
-2. Uruchom aplikacje:
+2. Start the app:
    ```bash
    python main.py
    ```
-3. Otworz przegladarke:
+3. Open:
    - `http://127.0.0.1:5000/`
 
-## Testy
+## Tests
 
-Uruchomienie calego zestawu:
+Run the full test suite:
 
 ```bash
 python -m pytest -q
 ```
 
-## API (skrot)
+## API (Short)
 
 - `POST /api/new-game`
-  - body: `{"mode": "normal"}` lub `{"mode": "easy"}`
+  - body: `{"mode": "normal"}` or `{"mode": "easy"}`
   - response: `game_id`, `max_rows`, `word_length`, `mode`
 
 - `POST /api/guess`
   - body: `{"game_id": "...", "guess": "kotek"}`
-  - response: wynik wiersza, numer proby, status gry i komunikat
+  - response: row score, attempt number, game status, and message
 
-## Synchronizacja slownika
+## Dictionary Sync
 
-Skrypt pobiera wpisy z archiwum i aktualizuje baze SQLite:
+Sync archive records into SQLite:
 
 ```bash
 python scripts/sync_wordle_archive.py --db data/wordle_pl.sqlite3
 ```
 
-Opcjonalnie pobieranie miniatur:
+Optionally fetch thumbnail URLs:
 
 ```bash
 python scripts/sync_wordle_archive.py --fetch-images
 ```
 
-## Uwagi utrzymaniowe
+## Maintenance Notes
 
-- Logika slow i scoring jest wydzielona do `wordle_logic.py`.
-- Operacje na bazie i migracje sa w `word_database.py`.
-- `app.py` korzysta z fabryki aplikacji (`create_app`), co ulatwia testowanie.
+- Core word rules and scoring live in `wordle_logic.py`.
+- Database operations and migrations live in `word_database.py`.
+- `app.py` uses an app factory (`create_app`) to simplify testing.
