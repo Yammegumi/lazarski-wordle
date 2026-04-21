@@ -1,0 +1,23 @@
+# Python/cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Virtual env
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+
+# Secrets
+.env
+.env.*
+
+# SQLite: ignoruj wszystkie, ale zostaw tę jedną bazę
+data/*.sqlite3
+!data/wordle_pl.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.db-journal

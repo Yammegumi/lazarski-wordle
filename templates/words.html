@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SŁOWA - Wordle PL</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main class="words-shell">
+    <header class="words-header">
+        <a class="nav-pill" href="{{ url_for('index') }}">← Gra</a>
+        <h1>SŁOWA</h1>
+    </header>
+
+    <form class="words-search" method="get" action="{{ url_for('words_index') }}">
+        <input
+            type="text"
+            name="q"
+            value="{{ query }}"
+            placeholder="Szukaj słowa lub opisu"
+            aria-label="Szukaj słowa lub opisu"
+        >
+        <button type="submit">Szukaj</button>
+        {% if query %}
+            <a class="clear-link" href="{{ url_for('words_index') }}">Wyczyść</a>
+        {% endif %}
+    </form>
+
+    <p class="words-count">
+        {% if query %}
+            Wyniki: {{ filtered_count }} z {{ total_available }} słów.
+        {% else %}
+            Dostępnych słów: {{ total_available }}.
+        {% endif %}
+    </p>
+
+    <ul class="word-list">
+        {% for entry in entries %}
+            <li class="word-list-item">
+                <a class="word-card" href="{{ url_for('word_detail', word=entry.word) }}">
+                    <span class="word-value">{{ entry.word|upper }}</span>
+                    <span class="word-meaning">
+                        {{ entry.meaning if entry.meaning else "Brak opisu." }}
+                    </span>
+                </a>
+            </li>
+        {% else %}
+            <li class="word-list-empty">Brak wyników dla podanego zapytania.</li>
+        {% endfor %}
+    </ul>
+</main>
+</body>
+</html>

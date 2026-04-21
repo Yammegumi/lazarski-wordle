@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ entry.word|upper }} - Wordle PL</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main class="word-detail-shell">
+    <header class="word-detail-header">
+        <a class="nav-pill" href="{{ url_for('words_index') }}">← Słowa</a>
+        <a class="nav-pill" href="{{ url_for('index') }}">← Gra</a>
+    </header>
+
+    <h1 class="word-detail-title">{{ entry.word|upper }}</h1>
+
+    <section class="word-detail-card">
+        <h2>Znaczenie</h2>
+        <p>{{ entry.meaning if entry.meaning else "Brak opisu dla tego słowa." }}</p>
+    </section>
+
+    <section class="word-detail-card">
+        <h2>Metadane</h2>
+        <dl class="meta-grid">
+            <dt>Numer łamigłówki</dt>
+            <dd>{{ entry.puzzle_number if entry.puzzle_number else "—" }}</dd>
+        </dl>
+    </section>
+
+    <section class="word-detail-card">
+        <h2>Zdjęcie (przyszły feature)</h2>
+        {% if entry.image_url %}
+            <img class="word-image" src="{{ entry.image_url }}" alt="Ilustracja dla słowa {{ entry.word }}">
+        {% else %}
+            <div class="image-placeholder">Miejsce na zdjęcie</div>
+        {% endif %}
+    </section>
+</main>
+</body>
+</html>

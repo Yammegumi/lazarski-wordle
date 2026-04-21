@@ -1,0 +1,260 @@
+from __future__ import annotations
+
+import random
+import uuid
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+from flask import Flask, abort, jsonify, render_template, request
+
+from word_database import DEFAULT_DB_PATH, ensure_schema, get_connection, load_words_from_database
+from wordle_logic import (
+    MAX_ATTEMPTS,
+    WORD_LENGTH,
+    is_valid_easy_word_shape,
+    is_valid_word_shape,
+    load_words,
+    normalize_word,
+    score_guess,
+    strip_polish_diacritics,
+    validate_guess,
+    validate_guess_easy,
+)
+
+
+@dataclass
+class GameState:
+    target_word: str
+    mode: str = "normal"
+    guesses: list[str] = field(default_factory=list)
+    status: str = "in_progress"
+
+
+# Build and configure the Flask application together with game and dictionary state.
+def create_app(
+    words_path: str | Path = "words.txt",
+    words_override: list[str] | None = None,
+    db_path: str | Path = DEFAULT_DB_PATH,
+) -> Flask:
+    app = Flask(__name__, template_folder="templates", static_folder="static")
+    resolved_db_path = Path(db_path)
+    words_from_database = False
+
+    if words_override is None:
+        try:
+            words = load_words_from_database(resolved_db_path)
+            words_from_database = True
+        except ValueError:
+            words = load_words(Path(words_path))
+    else:
+        words = [normalize_word(word) for word in words_override if word.strip()]
+        if not words:
+            raise ValueError("Slownik nie moze byc pusty.")
+        for word in words:
+            if not is_valid_word_shape(word):
+                raise ValueError(f"Niepoprawne słowo testowe: {word}")
+        words = list(dict.fromkeys(words))
+
+    word_set = set(words)
+    easy_words: list[str] = []
+    seen_easy_words: set[str] = set()
+    for word in words:
+        easy_word = strip_polish_diacritics(word)
+        if not is_valid_easy_word_shape(easy_word):
+            continue
+        if easy_word in seen_easy_words:
+            continue
+        seen_easy_words.add(easy_word)
+        easy_words.append(easy_word)
+
+    if not easy_words:
+        raise ValueError("Brak słów dla trybu easy.")
+
+    easy_word_set = set(easy_words)
+    games: dict[str, GameState] = {}
+
+    # Return a minimal dictionary entry shape when database metadata is unavailable.
+    def _fallback_entry(word: str) -> dict[str, Any]:
+        return {
+            "word": word,
+            "meaning": None,
+            "image_url": None,
+            "puzzle_number": None,
+        }
+
+    # Load searchable word entries and total dictionary size for the words listing page.
+    def _fetch_words(query: str) -> tuple[list[dict[str, Any]], int]:
+        query = normalize_word(query)
+        if words_from_database:
+            with get_connection(resolved_db_path) as connection:
+                ensure_schema(connection)
+                total_available = connection.execute(
+                    "SELECT COUNT(*) FROM word_entries"
+                ).fetchone()[0]
+                if query:
+                    pattern = f"%{query}%"
+                    rows = connection.execute(
+                        """
+                        SELECT word, meaning, image_url, puzzle_number
+                        FROM word_entries
+                        WHERE word LIKE ? OR COALESCE(meaning, '') LIKE ?
+                        ORDER BY word
+                        """,
+                        (pattern, pattern),
+                    ).fetchall()
+                else:
+                    rows = connection.execute(
+                        """
+                        SELECT word, meaning, image_url, puzzle_number
+                        FROM word_entries
+                        ORDER BY word
+                        """
+                    ).fetchall()
+            return [dict(row) for row in rows], total_available
+
+        entries = [_fallback_entry(word) for word in sorted(words)]
+        if not query:
+            return entries, len(entries)
+        filtered = [
+            entry
+            for entry in entries
+            if query in entry["word"] or (entry["meaning"] and query in entry["meaning"].lower())
+        ]
+        return filtered, len(entries)
+
+    # Resolve one dictionary entry either from the database or from the in-memory fallback list.
+    def _fetch_word(word: str) -> dict[str, Any] | None:
+        normalized = normalize_word(word)
+        if words_from_database:
+            with get_connection(resolved_db_path) as connection:
+                ensure_schema(connection)
+                row = connection.execute(
+                    """
+                    SELECT word, meaning, image_url, puzzle_number
+                    FROM word_entries
+                    WHERE word = ?
+                    """,
+                    (normalized,),
+                ).fetchone()
+            if row:
+                return dict(row)
+
+        if normalized in word_set:
+            return _fallback_entry(normalized)
+        return None
+
+    # Render the main game page with board dimensions from backend constants.
+    @app.get("/")
+    def index() -> str:
+        return render_template("index.html", max_rows=MAX_ATTEMPTS, word_length=WORD_LENGTH)
+
+    # Render the searchable dictionary page with either all or filtered entries.
+    @app.get("/words")
+    def words_index() -> str:
+        query = request.args.get("q", "")
+        entries, total_available = _fetch_words(query)
+        return render_template(
+            "words.html",
+            entries=entries,
+            query=query,
+            total_available=total_available,
+            filtered_count=len(entries),
+        )
+
+    # Render details for a single normalized dictionary word or return 404 when missing.
+    @app.get("/words/<word>")
+    def word_detail(word: str) -> str:
+        normalized = normalize_word(word)
+        if not is_valid_word_shape(normalized):
+            abort(404)
+        entry = _fetch_word(normalized)
+        if entry is None:
+            abort(404)
+        return render_template("word_detail.html", entry=entry)
+
+    # Start a new game session in requested mode and return public game metadata.
+    @app.post("/api/new-game")
+    def new_game() -> tuple[Any, int] | Any:
+        payload = request.get_json(silent=True) or {}
+        raw_mode = payload.get("mode", "normal")
+        if not isinstance(raw_mode, str):
+            return jsonify({"message": "Niepoprawny tryb gry."}), 400
+        game_mode = normalize_word(raw_mode)
+        if game_mode not in {"normal", "easy"}:
+            return jsonify({"message": "Niepoprawny tryb gry."}), 400
+
+        target_pool = easy_words if game_mode == "easy" else words
+        game_id = str(uuid.uuid4())
+        games[game_id] = GameState(target_word=random.choice(target_pool), mode=game_mode)
+        return jsonify(
+            {
+                "game_id": game_id,
+                "max_rows": MAX_ATTEMPTS,
+                "word_length": WORD_LENGTH,
+                "mode": game_mode,
+            }
+        )
+
+    # Validate and score a guess, then update game state and return current result.
+    @app.post("/api/guess")
+    def guess() -> tuple[Any, int] | Any:
+        payload = request.get_json(silent=True) or {}
+        game_id = payload.get("game_id")
+        raw_guess = payload.get("guess")
+
+        if not isinstance(game_id, str) or not game_id:
+            return jsonify({"message": "Brak poprawnego game_id."}), 400
+        if not isinstance(raw_guess, str):
+            return jsonify({"message": "Brak poprawnego slowa."}), 400
+
+        game = games.get(game_id)
+        if game is None:
+            return jsonify({"message": "Nie znaleziono gry."}), 404
+
+        if game.status != "in_progress":
+            finished = {
+                "message": "Gra jest juz zakonczona.",
+                "game_status": game.status,
+                "mode": game.mode,
+            }
+            if game.status == "lost":
+                finished["target_word"] = game.target_word
+            return jsonify(finished), 409
+
+        guess_word = normalize_word(raw_guess)
+        if game.mode == "easy":
+            validation_error = validate_guess_easy(guess_word, easy_word_set)
+        else:
+            validation_error = validate_guess(guess_word, word_set)
+        if validation_error:
+            return jsonify({"message": validation_error}), 400
+
+        row_result = score_guess(guess_word, game.target_word)
+        game.guesses.append(guess_word)
+
+        if guess_word == game.target_word:
+            game.status = "won"
+            message = "Brawo! Odgadles slowo."
+        elif len(game.guesses) >= MAX_ATTEMPTS:
+            game.status = "lost"
+            message = f"Koniec gry. Szukane slowo to: {game.target_word.upper()}."
+        else:
+            message = "Proba zapisana."
+
+        response: dict[str, Any] = {
+            "row_result": row_result,
+            "attempt": len(game.guesses),
+            "game_status": game.status,
+            "message": message,
+            "mode": game.mode,
+        }
+        if game.status == "lost":
+            response["target_word"] = game.target_word
+
+        return jsonify(response)
+
+    return app
+
+
+app = create_app()
