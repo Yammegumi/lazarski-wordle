@@ -59,11 +59,18 @@ body {
     display: none;
 }
 
-.about-trigger {
+.corner-actions {
     position: fixed;
     top: 14px;
     right: 12px;
     z-index: 260;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.about-trigger,
+.tutorial-trigger {
     width: 42px;
     height: 42px;
     border-radius: 12px;
@@ -81,11 +88,17 @@ body {
     user-select: none;
 }
 
-.about-trigger:hover {
+.tutorial-trigger {
+    font-size: 1.2rem;
+}
+
+.about-trigger:hover,
+.tutorial-trigger:hover {
     background: rgba(58, 70, 101, 0.94);
 }
 
-.about-trigger:focus-visible {
+.about-trigger:focus-visible,
+.tutorial-trigger:focus-visible {
     outline: 2px solid rgba(156, 199, 255, 0.85);
     outline-offset: 2px;
 }
@@ -302,6 +315,36 @@ body {
     color: rgba(240, 242, 246, 0.9);
 }
 
+.tutorial-panel p {
+    margin: 0 0 10px;
+}
+
+.result-panel {
+    text-align: center;
+}
+
+.result-word {
+    margin: 8px 0 10px;
+    font-size: clamp(1.4rem, 4.2vw, 2.4rem);
+    letter-spacing: 0.06em;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.result-meaning-label {
+    margin: 0 0 6px;
+    color: rgba(240, 242, 246, 0.7);
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    font-size: 0.82rem;
+}
+
+.result-meaning {
+    margin: 0;
+    line-height: 1.45;
+    color: rgba(240, 242, 246, 0.94);
+}
+
 .about-close {
     position: absolute;
     right: 10px;
@@ -445,10 +488,6 @@ body.modal-open {
     max-width: 760px;
 }
 
-.slownikowo-shell-compact {
-    max-width: 1240px;
-}
-
 .slownikowo-topbar {
     display: flex;
     justify-content: center;
@@ -463,24 +502,6 @@ body.modal-open {
     letter-spacing: 0.08em;
     font-size: clamp(1.35rem, 2.8vw, 2.8rem);
     font-weight: 800;
-}
-
-.slownikowo-back {
-    width: 36px;
-    height: 36px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    color: rgba(240, 242, 246, 0.86);
-    border: 1px solid rgba(240, 242, 246, 0.22);
-    border-radius: 999px;
-    font-size: 1.2rem;
-}
-
-.slownikowo-back-placeholder {
-    width: 36px;
-    height: 36px;
 }
 
 .slownikowo-board {
@@ -520,15 +541,6 @@ body.modal-open {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-}
-
-.slownikowo-date {
-    margin: 0 0 6px;
-    text-align: center;
-    color: rgba(240, 242, 246, 0.68);
-    letter-spacing: 0.07em;
-    font-size: 0.85rem;
-    text-transform: uppercase;
 }
 
 .slownikowo-attempts {
@@ -675,10 +687,6 @@ body.modal-open {
     margin: 0;
 }
 
-.meta-grid a {
-    color: #9cc7ff;
-}
-
 .word-image {
     width: 100%;
     max-width: 330px;
@@ -713,12 +721,24 @@ body.modal-open {
         height: 38px;
     }
 
-    .about-trigger {
+    .corner-actions {
         top: 10px;
         right: 8px;
+        gap: 6px;
+    }
+
+    .about-trigger,
+    .tutorial-trigger {
         width: 38px;
         height: 38px;
+    }
+
+    .about-trigger {
         font-size: 1.2rem;
+    }
+
+    .tutorial-trigger {
+        font-size: 1.1rem;
     }
 
     .keyboard {
@@ -751,10 +771,6 @@ body.modal-open {
     .slownikowo-shell,
     .word-detail-shell {
         padding-top: 14px;
-    }
-
-    .slownikowo-board {
-        position: relative;
     }
 
     .slownikowo-dots {

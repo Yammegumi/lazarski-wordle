@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 SLOWNIKOWO_SOURCE_URL = (
@@ -126,7 +127,7 @@ def download_slownikowo_words(
     prepared = prepare_slownikowo_words(lemmas)
     try:
         frequency_words = download_frequency_words(source_url=frequency_url)
-    except Exception:
+    except (URLError, TimeoutError, ValueError):
         frequency_words = set()
 
     filtered = filter_common_slownikowo_words(prepared, frequency_words)

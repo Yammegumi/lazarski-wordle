@@ -19,7 +19,10 @@
             <a class="settings-link" href="{{ url_for('words_index') }}">S&#321;OWA</a>
         </nav>
     </details>
-    <button id="about-trigger" class="about-trigger" type="button" aria-label="ABOUT ME">i</button>
+    <div class="corner-actions" aria-label="Akcje prawego gornego rogu">
+        <button id="tutorial-trigger" class="tutorial-trigger" type="button" aria-label="Zasady gry">?</button>
+        <button id="about-trigger" class="about-trigger" type="button" aria-label="ABOUT ME">i</button>
+    </div>
 
     <h1 class="title">WORDLE</h1>
     <p id="mode-info" class="mode-info"></p>
@@ -45,6 +48,30 @@
             Projekt zosta&#322; stworzony przez Mateusza &#321;askiego (numer studencki 53758) oraz Oliwi&#281; Regulsk&#261;
             (numer studencki 53906).
         </p>
+    </div>
+</div>
+<div id="tutorial-modal" class="about-modal" hidden>
+    <div class="about-panel tutorial-panel" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
+        <button id="tutorial-close" class="about-close" type="button" aria-label="Zamknij okno">&times;</button>
+        <h2 id="tutorial-title">ZASADY GRY</h2>
+        <p>Odgadnij 5-literowe slowo w maksymalnie 6 probach.</p>
+        <p>
+            Po wpisaniu slowa i zatwierdzeniu:
+            zielony oznacza dobra litere na dobrym miejscu, zolty dobra litere na zlym miejscu, a szary litere,
+            ktorej nie ma w hasle.
+        </p>
+        <p>
+            Uzyj zebatki po lewej, aby wlaczyc nowa gre, zmienic tryb lub przejsc do Slownikowo.
+        </p>
+    </div>
+</div>
+<div id="result-modal" class="about-modal" hidden>
+    <div class="about-panel result-panel" role="dialog" aria-modal="true" aria-labelledby="result-title">
+        <button id="result-close" class="about-close" type="button" aria-label="Zamknij okno">&times;</button>
+        <h2 id="result-title">WYNIK GRY</h2>
+        <p class="result-word" id="result-word"></p>
+        <p class="result-meaning-label">ZNACZENIE</p>
+        <p class="result-meaning" id="result-meaning"></p>
     </div>
 </div>
 

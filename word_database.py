@@ -16,45 +16,49 @@ def _table_columns(connection: sqlite3.Connection, table_name: str) -> list[str]
 
 # Rebuild legacy word_entries schema without deprecated source and date columns.
 def _migrate_word_entries_without_date_and_source(connection: sqlite3.Connection) -> None:
-    connection.execute("BEGIN")
-    connection.execute(
-        """
-        CREATE TABLE word_entries_new (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            word TEXT NOT NULL UNIQUE,
-            meaning TEXT,
-            image_url TEXT,
-            puzzle_number INTEGER,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    try:
+        connection.execute("BEGIN")
+        connection.execute(
+            """
+            CREATE TABLE word_entries_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                word TEXT NOT NULL UNIQUE,
+                meaning TEXT,
+                image_url TEXT,
+                puzzle_number INTEGER,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
         )
-        """
-    )
-    connection.execute(
-        """
-        INSERT INTO word_entries_new (
-            id,
-            word,
-            meaning,
-            image_url,
-            puzzle_number,
-            created_at,
-            updated_at
+        connection.execute(
+            """
+            INSERT INTO word_entries_new (
+                id,
+                word,
+                meaning,
+                image_url,
+                puzzle_number,
+                created_at,
+                updated_at
+            )
+            SELECT
+                id,
+                word,
+                meaning,
+                image_url,
+                puzzle_number,
+                COALESCE(created_at, CURRENT_TIMESTAMP),
+                COALESCE(updated_at, CURRENT_TIMESTAMP)
+            FROM word_entries
+            """
         )
-        SELECT
-            id,
-            word,
-            meaning,
-            image_url,
-            puzzle_number,
-            COALESCE(created_at, CURRENT_TIMESTAMP),
-            COALESCE(updated_at, CURRENT_TIMESTAMP)
-        FROM word_entries
-        """
-    )
-    connection.execute("DROP TABLE word_entries")
-    connection.execute("ALTER TABLE word_entries_new RENAME TO word_entries")
-    connection.execute("COMMIT")
+        connection.execute("DROP TABLE word_entries")
+        connection.execute("ALTER TABLE word_entries_new RENAME TO word_entries")
+        connection.execute("COMMIT")
+    except Exception:
+        connection.execute("ROLLBACK")
+        raise
 
 
 # Ensure the current schema exists and run required migrations before use.

@@ -49,20 +49,19 @@ class SlownikowoGameState:
 
 # Build and configure the Flask application together with game and dictionary state.
 def create_app(
-    words_path: str | Path = "words.txt",
+    words_path: str | Path = "data/words.txt",
     words_override: list[str] | None = None,
     db_path: str | Path = DEFAULT_DB_PATH,
     slownikowo_words_override: list[str] | None = None,
 ) -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
     resolved_db_path = Path(db_path)
-    words_from_database = False
+    words_from_database = words_override is None and resolved_db_path.exists()
 
     if words_override is None:
-        try:
+        if words_from_database:
             words = load_words_from_database(resolved_db_path)
-            words_from_database = True
-        except ValueError:
+        else:
             words = load_words(Path(words_path))
     else:
         words = [normalize_word(word) for word in words_override if word.strip()]
@@ -91,6 +90,10 @@ def create_app(
     easy_word_set = set(easy_words)
     games: dict[str, GameState] = {}
 
+    if words_from_database:
+        with get_connection(resolved_db_path) as connection:
+            ensure_schema(connection)
+
     if slownikowo_words_override is None:
         slownikowo_words = load_slownikowo_words()
     else:
@@ -113,7 +116,6 @@ def create_app(
         query = normalize_word(query)
         if words_from_database:
             with get_connection(resolved_db_path) as connection:
-                ensure_schema(connection)
                 total_available = connection.execute(
                     "SELECT COUNT(*) FROM word_entries"
                 ).fetchone()[0]
@@ -153,7 +155,6 @@ def create_app(
         normalized = normalize_word(word)
         if words_from_database:
             with get_connection(resolved_db_path) as connection:
-                ensure_schema(connection)
                 row = connection.execute(
                     """
                     SELECT word, meaning, image_url, puzzle_number
@@ -168,6 +169,40 @@ def create_app(
         if normalized in word_set:
             return _fallback_entry(normalized)
         return None
+
+    # Extract required game request payload fields or return an API error response tuple.
+    def _extract_game_payload(payload: dict[str, Any]) -> tuple[str, str, tuple[Any, int] | None]:
+        game_id = payload.get("game_id")
+        raw_guess = payload.get("guess")
+
+        if not isinstance(game_id, str) or not game_id:
+            return "", "", (jsonify({"message": "Brak poprawnego game_id."}), 400)
+        if not isinstance(raw_guess, str):
+            return "", "", (jsonify({"message": "Brak poprawnego slowa."}), 400)
+        return game_id, raw_guess, None
+
+    # Return a standardized API response for an already finished Wordle game.
+    def _build_finished_wordle_response(game: GameState) -> tuple[Any, int]:
+        target_entry = _fetch_word(game.target_word)
+        target_meaning = target_entry["meaning"] if target_entry else None
+        finished: dict[str, Any] = {
+            "message": "Gra jest juz zakonczona.",
+            "game_status": game.status,
+            "mode": game.mode,
+            "target_word": game.target_word,
+            "target_meaning": target_meaning,
+        }
+        return jsonify(finished), 409
+
+    # Return a standardized API response for an already finished Slownikowo game.
+    def _build_finished_slownikowo_response(game: SlownikowoGameState) -> tuple[Any, int]:
+        finished: dict[str, Any] = {
+            "message": "Gra jest juz zakonczona.",
+            "game_status": game.status,
+        }
+        if game.status in {"won", "lost"}:
+            finished["target_word"] = game.target_word
+        return jsonify(finished), 409
 
     # Render the main game page with board dimensions from backend constants.
     @app.get("/")
@@ -230,27 +265,16 @@ def create_app(
     @app.post("/api/guess")
     def guess() -> tuple[Any, int] | Any:
         payload = request.get_json(silent=True) or {}
-        game_id = payload.get("game_id")
-        raw_guess = payload.get("guess")
-
-        if not isinstance(game_id, str) or not game_id:
-            return jsonify({"message": "Brak poprawnego game_id."}), 400
-        if not isinstance(raw_guess, str):
-            return jsonify({"message": "Brak poprawnego slowa."}), 400
+        game_id, raw_guess, payload_error = _extract_game_payload(payload)
+        if payload_error is not None:
+            return payload_error
 
         game = games.get(game_id)
         if game is None:
             return jsonify({"message": "Nie znaleziono gry."}), 404
 
         if game.status != "in_progress":
-            finished = {
-                "message": "Gra jest juz zakonczona.",
-                "game_status": game.status,
-                "mode": game.mode,
-            }
-            if game.status == "lost":
-                finished["target_word"] = game.target_word
-            return jsonify(finished), 409
+            return _build_finished_wordle_response(game)
 
         guess_word = normalize_word(raw_guess)
         if game.mode == "easy":
@@ -279,8 +303,10 @@ def create_app(
             "message": message,
             "mode": game.mode,
         }
-        if game.status == "lost":
+        if game.status in {"won", "lost"}:
+            target_entry = _fetch_word(game.target_word)
             response["target_word"] = game.target_word
+            response["target_meaning"] = target_entry["meaning"] if target_entry else None
 
         return jsonify(response)
 
@@ -306,26 +332,16 @@ def create_app(
     @app.post("/api/slownikowo/guess")
     def slownikowo_guess() -> tuple[Any, int] | Any:
         payload = request.get_json(silent=True) or {}
-        game_id = payload.get("game_id")
-        raw_guess = payload.get("guess")
-
-        if not isinstance(game_id, str) or not game_id:
-            return jsonify({"message": "Brak poprawnego game_id."}), 400
-        if not isinstance(raw_guess, str):
-            return jsonify({"message": "Brak poprawnego slowa."}), 400
+        game_id, raw_guess, payload_error = _extract_game_payload(payload)
+        if payload_error is not None:
+            return payload_error
 
         game = slownikowo_games.get(game_id)
         if game is None:
             return jsonify({"message": "Nie znaleziono gry."}), 404
 
         if game.status != "in_progress":
-            finished_response: dict[str, Any] = {
-                "message": "Gra jest juz zakonczona.",
-                "game_status": game.status,
-            }
-            if game.status in {"won", "lost"}:
-                finished_response["target_word"] = game.target_word
-            return jsonify(finished_response), 409
+            return _build_finished_slownikowo_response(game)
 
         guess_word = normalize_slownikowo_word(raw_guess)
         validation_error = validate_slownikowo_guess(guess_word, slownikowo_word_set)

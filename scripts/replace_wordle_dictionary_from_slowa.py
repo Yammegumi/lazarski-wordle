@@ -12,7 +12,7 @@ from word_database import DEFAULT_DB_PATH, ensure_schema, get_connection  # noqa
 from wordle_logic import is_valid_word_shape, normalize_word  # noqa: E402
 
 DEFAULT_SOURCE_PATH = Path("data/slowa.txt")
-DEFAULT_FALLBACK_PATH = Path("words.txt")
+DEFAULT_FALLBACK_PATH = Path("data/words.txt")
 IMPORT_TABLE_NAME = "word_entries_import"
 BATCH_SIZE = 5000
 PROGRESS_EVERY_LINES = 250000
@@ -75,18 +75,22 @@ def import_filtered_words(connection, source_path: Path) -> tuple[int, int]:
 
 # Replace the game dictionary table with sorted words from the deduplicated import table.
 def replace_wordle_dictionary(connection) -> int:
-    connection.execute("BEGIN")
-    connection.execute("DELETE FROM word_entries")
-    connection.execute(
-        f"""
-        INSERT INTO word_entries (word, meaning, image_url, puzzle_number)
-        SELECT word, NULL, NULL, NULL
-        FROM {IMPORT_TABLE_NAME}
-        ORDER BY word
-        """
-    )
-    connection.execute(f"DELETE FROM {IMPORT_TABLE_NAME}")
-    connection.execute("COMMIT")
+    try:
+        connection.execute("BEGIN")
+        connection.execute("DELETE FROM word_entries")
+        connection.execute(
+            f"""
+            INSERT INTO word_entries (word, meaning, image_url, puzzle_number)
+            SELECT word, NULL, NULL, NULL
+            FROM {IMPORT_TABLE_NAME}
+            ORDER BY word
+            """
+        )
+        connection.execute(f"DELETE FROM {IMPORT_TABLE_NAME}")
+        connection.execute("COMMIT")
+    except Exception:
+        connection.execute("ROLLBACK")
+        raise
     return connection.execute("SELECT COUNT(*) FROM word_entries").fetchone()[0]
 
 
@@ -105,7 +109,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
             "Filtruje data/slowa.txt do poprawnych słów 5-literowych i podmienia "
-            "słownik Wordle w SQLite oraz w pliku words.txt."
+            "słownik Wordle w SQLite oraz w pliku data/words.txt."
         )
     )
     parser.add_argument(
@@ -124,7 +128,7 @@ def main() -> None:
         "--fallback",
         type=Path,
         default=DEFAULT_FALLBACK_PATH,
-        help=f"Plik fallback words.txt (domyślnie: {DEFAULT_FALLBACK_PATH})",
+        help=f"Plik fallback data/words.txt (domyślnie: {DEFAULT_FALLBACK_PATH})",
     )
     args = parser.parse_args()
 

@@ -169,9 +169,9 @@ def upsert_record(connection: sqlite3.Connection, record: WordRecord) -> None:
         )
         VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(word) DO UPDATE SET
-            meaning = excluded.meaning,
-            image_url = excluded.image_url,
-            puzzle_number = excluded.puzzle_number,
+            meaning = COALESCE(excluded.meaning, word_entries.meaning),
+            image_url = COALESCE(excluded.image_url, word_entries.image_url),
+            puzzle_number = COALESCE(excluded.puzzle_number, word_entries.puzzle_number),
             updated_at = excluded.updated_at
         """,
         (

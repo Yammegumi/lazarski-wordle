@@ -4,9 +4,12 @@ const MAX_ATTEMPTS = slownikowoConfig.maxAttempts;
 
 const settingsMenu = document.getElementById("settings-menu");
 const menuNewSlownikowoGameButton = document.getElementById("menu-new-slownikowo-game");
+const tutorialTriggerButton = document.getElementById("tutorial-trigger");
 const aboutTriggerButton = document.getElementById("about-trigger");
 const aboutModal = document.getElementById("about-modal");
 const aboutCloseButton = document.getElementById("about-close");
+const tutorialModal = document.getElementById("tutorial-modal");
+const tutorialCloseButton = document.getElementById("tutorial-close");
 
 const dotsNode = document.getElementById("slownikowo-dots");
 const attemptsNode = document.getElementById("slownikowo-attempts");
@@ -29,6 +32,9 @@ function openAboutModal() {
     if (!aboutModal) {
         return;
     }
+    if (tutorialModal && !tutorialModal.hidden) {
+        tutorialModal.hidden = true;
+    }
     aboutModal.hidden = false;
     document.body.classList.add("modal-open");
 }
@@ -39,7 +45,39 @@ function closeAboutModal() {
         return;
     }
     aboutModal.hidden = true;
-    document.body.classList.remove("modal-open");
+    if (!tutorialModal || tutorialModal.hidden) {
+        document.body.classList.remove("modal-open");
+    }
+}
+
+// Open the tutorial modal and lock page scrolling while it is visible.
+function openTutorialModal() {
+    if (!tutorialModal) {
+        return;
+    }
+    if (aboutModal && !aboutModal.hidden) {
+        aboutModal.hidden = true;
+    }
+    tutorialModal.hidden = false;
+    document.body.classList.add("modal-open");
+}
+
+// Close the tutorial modal and restore page scrolling.
+function closeTutorialModal() {
+    if (!tutorialModal) {
+        return;
+    }
+    tutorialModal.hidden = true;
+    if (!aboutModal || aboutModal.hidden) {
+        document.body.classList.remove("modal-open");
+    }
+}
+
+// Return true when either about or tutorial modal is visible.
+function isAnyModalOpen() {
+    const aboutVisible = aboutModal && !aboutModal.hidden;
+    const tutorialVisible = tutorialModal && !tutorialModal.hidden;
+    return Boolean(aboutVisible || tutorialVisible);
 }
 
 // Render status text for final state messages (win/loss/errors).
@@ -141,7 +179,7 @@ function renderLanes() {
     upListNode.innerHTML = "";
     for (const entry of upEntries) {
         const item = document.createElement("li");
-        item.className = "slownikowo-lane-word up";
+        item.className = "slownikowo-lane-word";
         item.textContent = entry.word.toUpperCase();
         item.style.color = colorFromDistanceRatio(entry.distanceRatio);
         upListNode.appendChild(item);
@@ -150,7 +188,7 @@ function renderLanes() {
     downListNode.innerHTML = "";
     for (const entry of downEntries) {
         const item = document.createElement("li");
-        item.className = "slownikowo-lane-word down";
+        item.className = "slownikowo-lane-word";
         item.textContent = entry.word.toUpperCase();
         item.style.color = colorFromDistanceRatio(entry.distanceRatio);
         downListNode.appendChild(item);
@@ -215,6 +253,10 @@ async function startNewGame() {
 // Submit current input and render updated directional hints from server response.
 async function submitGuess(event) {
     event.preventDefault();
+
+    if (isAnyModalOpen()) {
+        return;
+    }
 
     if (gameStatus !== "in_progress") {
         await startNewGame();
@@ -291,8 +333,19 @@ if (aboutTriggerButton) {
     });
 }
 
+if (tutorialTriggerButton) {
+    tutorialTriggerButton.addEventListener("click", () => {
+        openTutorialModal();
+        closeSettingsMenu();
+    });
+}
+
 if (aboutCloseButton) {
     aboutCloseButton.addEventListener("click", closeAboutModal);
+}
+
+if (tutorialCloseButton) {
+    tutorialCloseButton.addEventListener("click", closeTutorialModal);
 }
 
 if (aboutModal) {
@@ -306,8 +359,25 @@ if (aboutModal) {
     });
 }
 
+if (tutorialModal) {
+    tutorialModal.hidden = true;
+    tutorialModal.addEventListener("click", (event) => {
+        if (event.target === tutorialModal) {
+            closeTutorialModal();
+        }
+    });
+}
+
 document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && aboutModal && !aboutModal.hidden) {
+    if (event.key !== "Escape") {
+        return;
+    }
+    if (tutorialModal && !tutorialModal.hidden) {
+        event.preventDefault();
+        closeTutorialModal();
+        return;
+    }
+    if (aboutModal && !aboutModal.hidden) {
         event.preventDefault();
         closeAboutModal();
     }
@@ -318,3 +388,4 @@ setAttempts();
 renderDots();
 renderLanes();
 startNewGame();
+openTutorialModal();

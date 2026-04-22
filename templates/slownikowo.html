@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<main class="slownikowo-shell slownikowo-shell-compact">
+<main class="slownikowo-shell">
     <details id="settings-menu" class="settings-menu">
         <summary class="settings-toggle" aria-label="Ustawienia">
             &#9881;
@@ -17,7 +17,10 @@
             <a class="settings-link" href="{{ url_for('index') }}">WORDLE</a>
         </nav>
     </details>
-    <button id="about-trigger" class="about-trigger" type="button" aria-label="ABOUT ME">i</button>
+    <div class="corner-actions" aria-label="Akcje prawego gornego rogu">
+        <button id="tutorial-trigger" class="tutorial-trigger" type="button" aria-label="Zasady gry">?</button>
+        <button id="about-trigger" class="about-trigger" type="button" aria-label="ABOUT ME">i</button>
+    </div>
 
     <header class="slownikowo-topbar">
         <h1 class="slownikowo-title">S&#321;OWNIKOWO</h1>
@@ -69,6 +72,21 @@
         <p>
             Projekt zosta&#322; stworzony przez Mateusza &#321;askiego (numer studencki 53758) oraz Oliwi&#281; Regulsk&#261;
             (numer studencki 53906).
+        </p>
+    </div>
+</div>
+<div id="tutorial-modal" class="about-modal" hidden>
+    <div class="about-panel tutorial-panel" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
+        <button id="tutorial-close" class="about-close" type="button" aria-label="Zamknij okno">&times;</button>
+        <h2 id="tutorial-title">ZASADY S&#321;OWNIKOWO</h2>
+        <p>Masz 15 prob na odgadniecie hasla.</p>
+        <p>
+            Po kazdej probie slowo trafi nad polem lub pod polem:
+            nad polem oznacza, ze jest wczesniej w slowniku, a pod polem ze pozniej.
+        </p>
+        <p>
+            Im bardziej zielony kolor slowa, tym blizej jestes hasla.
+            Zolty i szary oznaczaja wiekszy dystans.
         </p>
     </div>
 </div>

@@ -1,4 +1,5 @@
 import app as wordle_app
+from word_database import ensure_schema, get_connection
 
 
 def _new_game(client, mode: str | None = None):
@@ -108,6 +109,7 @@ def test_game_lost_after_six_attempts(monkeypatch):
         assert data["attempt"] == 6
         assert data["game_status"] == "lost"
         assert data["target_word"] == "kotek"
+        assert data["target_meaning"] is None
 
 
 def test_game_won(monkeypatch):
@@ -123,6 +125,43 @@ def test_game_won(monkeypatch):
         assert response.status_code == 200
         assert data["attempt"] == 1
         assert data["game_status"] == "won"
+        assert data["target_word"] == "żółty"
+        assert data["target_meaning"] is None
+
+
+def test_game_won_returns_target_meaning_from_database(monkeypatch, tmp_path):
+    monkeypatch.setattr(wordle_app.random, "choice", lambda seq: "kotek")
+    db_path = tmp_path / "wordle_test.sqlite3"
+    with get_connection(db_path) as connection:
+        ensure_schema(connection)
+        connection.execute(
+            """
+            INSERT INTO word_entries (word, meaning, image_url, puzzle_number)
+            VALUES (?, ?, ?, ?)
+            """,
+            ("kotek", "domowe zwierze o miekkim futrze", None, 1),
+        )
+        connection.execute(
+            """
+            INSERT INTO word_entries (word, meaning, image_url, puzzle_number)
+            VALUES (?, ?, ?, ?)
+            """,
+            ("rower", "pojazd napedzany pedalami", None, 2),
+        )
+        connection.commit()
+
+    app = wordle_app.create_app(db_path=db_path)
+    app.config["TESTING"] = True
+
+    with app.test_client() as client:
+        game = _new_game(client)
+        response = client.post("/api/guess", json={"game_id": game["game_id"], "guess": "kotek"})
+        data = response.get_json()
+
+        assert response.status_code == 200
+        assert data["game_status"] == "won"
+        assert data["target_word"] == "kotek"
+        assert data["target_meaning"] == "domowe zwierze o miekkim futrze"
 
 
 def test_easy_mode_guess_won_without_diacritics(monkeypatch):
@@ -220,6 +259,9 @@ def test_index_contains_settings_menu_and_about_modal(monkeypatch):
         assert "ABOUT ME" in html
         assert "WORDLE</h1>" in html
         assert 'id="about-modal"' in html
+        assert 'id="tutorial-trigger"' in html
+        assert 'id="tutorial-modal"' in html
+        assert 'id="result-modal"' in html
         assert "images/logo_pl.svg" in html
         assert "Wojciecha Draba" in html
         assert "53758" in html

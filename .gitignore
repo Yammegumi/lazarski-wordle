@@ -1,25 +1,22 @@
-# Python/cache
+﻿# Python runtime and caches
 __pycache__/
 *.pyc
 .pytest_cache/
-.venv/
-venv/
-.idea/
-.vscode/
-.env
-.env.*
-data/*.sqlite3
-!data/wordle_pl.sqlite3
-*.sqlite3-wal
-*.sqlite3-shm
-*.db-journal
-data/cache_*.json
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
-# Virtual env
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
 .venv/
 venv/
 
-# IDE
+# IDE settings
 .idea/
 .vscode/
 
@@ -27,9 +24,16 @@ venv/
 .env
 .env.*
 
-# SQLite: ignoruj wszystkie, ale zostaw tę jedną bazę
+# SQLite: ignore all DB files except the main app seed database
 data/*.sqlite3
 !data/wordle_pl.sqlite3
 *.sqlite3-wal
 *.sqlite3-shm
 *.db-journal
+
+# Local/generated data inputs and caches
+data/cache_*.json
+data/slowa.txt
+
+# Tests
+tests/

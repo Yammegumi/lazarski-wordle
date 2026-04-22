@@ -27,6 +27,8 @@ def test_slownikowo_page_is_available():
     assert "S&#321;OWNIKOWO" in html
     assert "WPISZ SLOWO" in html
     assert 'id="settings-menu"' in html
+    assert 'id="tutorial-trigger"' in html
+    assert 'id="tutorial-modal"' in html
 
 
 def test_slownikowo_new_game_returns_randomized_schema(monkeypatch):

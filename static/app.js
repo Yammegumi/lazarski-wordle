@@ -33,10 +33,17 @@ const modeInfoNode = document.getElementById("mode-info");
 const settingsMenu = document.getElementById("settings-menu");
 const menuNewGameButton = document.getElementById("menu-new-game");
 const menuModeToggleButton = document.getElementById("menu-mode-toggle");
+const tutorialTriggerButton = document.getElementById("tutorial-trigger");
 const aboutTriggerButton = document.getElementById("about-trigger");
 
 const aboutModal = document.getElementById("about-modal");
 const aboutCloseButton = document.getElementById("about-close");
+const tutorialModal = document.getElementById("tutorial-modal");
+const tutorialCloseButton = document.getElementById("tutorial-close");
+const resultModal = document.getElementById("result-modal");
+const resultCloseButton = document.getElementById("result-close");
+const resultWordNode = document.getElementById("result-word");
+const resultMeaningNode = document.getElementById("result-meaning");
 
 let selectedMode = "normal";
 let board = [];
@@ -45,6 +52,20 @@ let gameStatus = "in_progress";
 let currentRow = 0;
 let currentCol = 0;
 let keyState = new Map();
+
+// Return true when the given modal node exists and is currently visible.
+function isModalVisible(modalNode) {
+    return Boolean(modalNode && !modalNode.hidden);
+}
+
+// Keep body scrolling lock aligned with any currently visible modal.
+function syncModalBodyState() {
+    if (isModalVisible(aboutModal) || isModalVisible(tutorialModal) || isModalVisible(resultModal)) {
+        document.body.classList.add("modal-open");
+    } else {
+        document.body.classList.remove("modal-open");
+    }
+}
 
 // Show a status message and optionally style it as success or error.
 function setStatus(message, type = "") {
@@ -174,8 +195,14 @@ function openAboutModal() {
     if (!aboutModal) {
         return;
     }
+    if (tutorialModal && !tutorialModal.hidden) {
+        tutorialModal.hidden = true;
+    }
+    if (resultModal && !resultModal.hidden) {
+        resultModal.hidden = true;
+    }
     aboutModal.hidden = false;
-    document.body.classList.add("modal-open");
+    syncModalBodyState();
 }
 
 // Close the about dialog and restore background page scrolling.
@@ -184,18 +211,89 @@ function closeAboutModal() {
         return;
     }
     aboutModal.hidden = true;
-    document.body.classList.remove("modal-open");
+    syncModalBodyState();
+}
+
+// Open the tutorial dialog and disable background page scrolling.
+function openTutorialModal() {
+    if (!tutorialModal) {
+        return;
+    }
+    if (aboutModal && !aboutModal.hidden) {
+        aboutModal.hidden = true;
+    }
+    if (resultModal && !resultModal.hidden) {
+        resultModal.hidden = true;
+    }
+    tutorialModal.hidden = false;
+    syncModalBodyState();
+}
+
+// Close the tutorial dialog and restore background page scrolling when possible.
+function closeTutorialModal() {
+    if (!tutorialModal) {
+        return;
+    }
+    tutorialModal.hidden = true;
+    syncModalBodyState();
+}
+
+// Open the game-result modal and display the solved word meaning.
+function openResultModal(word, meaning) {
+    if (!resultModal) {
+        return;
+    }
+    if (aboutModal && !aboutModal.hidden) {
+        aboutModal.hidden = true;
+    }
+    if (tutorialModal && !tutorialModal.hidden) {
+        tutorialModal.hidden = true;
+    }
+    if (resultWordNode) {
+        resultWordNode.textContent = word ? `HASLO: ${word.toUpperCase()}` : "HASLO: ?";
+    }
+    if (resultMeaningNode) {
+        resultMeaningNode.textContent = meaning || "Brak opisu tego slowa w bazie.";
+    }
+    resultModal.hidden = false;
+    syncModalBodyState();
+}
+
+// Close the game-result modal and restore page scroll when applicable.
+function closeResultModal() {
+    if (!resultModal) {
+        return;
+    }
+    resultModal.hidden = true;
+    syncModalBodyState();
+}
+
+// Return true when any top-level modal is currently visible.
+function isAnyModalOpen() {
+    return isModalVisible(aboutModal) || isModalVisible(tutorialModal) || isModalVisible(resultModal);
 }
 
 // Map physical keyboard presses to in-game input actions.
 function applyPhysicalKey(event) {
-    if (event.key === "Escape" && aboutModal && !aboutModal.hidden) {
-        event.preventDefault();
-        closeAboutModal();
-        return;
+    if (event.key === "Escape") {
+        if (resultModal && !resultModal.hidden) {
+            event.preventDefault();
+            closeResultModal();
+            return;
+        }
+        if (tutorialModal && !tutorialModal.hidden) {
+            event.preventDefault();
+            closeTutorialModal();
+            return;
+        }
+        if (aboutModal && !aboutModal.hidden) {
+            event.preventDefault();
+            closeAboutModal();
+            return;
+        }
     }
 
-    if (aboutModal && !aboutModal.hidden) {
+    if (isAnyModalOpen()) {
         return;
     }
 
@@ -309,11 +407,13 @@ async function submitGuess() {
         if (data.game_status === "won") {
             gameStatus = "won";
             setStatus("Wygrana! Brawo!", "success");
+            openResultModal(data.target_word || guess, data.target_meaning || "");
             return;
         }
         if (data.game_status === "lost") {
             gameStatus = "lost";
             setStatus(data.message || "Przegrana.", "error");
+            openResultModal(data.target_word || guess, data.target_meaning || "");
             return;
         }
 
@@ -327,7 +427,7 @@ async function submitGuess() {
 
 // Handle a single logical key press from physical or on-screen keyboard.
 function handleInput(inputKey) {
-    if (aboutModal && !aboutModal.hidden) {
+    if (isAnyModalOpen()) {
         return;
     }
 
@@ -358,7 +458,7 @@ window.addEventListener("keydown", applyPhysicalKey);
 if (settingsMenu) {
     document.addEventListener("click", (event) => {
         if (!settingsMenu.contains(event.target)) {
-            settingsMenu.removeAttribute("open");
+            closeSettingsMenu();
         }
     });
 }
@@ -386,13 +486,27 @@ if (aboutTriggerButton) {
     });
 }
 
+if (tutorialTriggerButton) {
+    tutorialTriggerButton.addEventListener("click", () => {
+        openTutorialModal();
+        closeSettingsMenu();
+    });
+}
+
 if (aboutCloseButton) {
     aboutCloseButton.addEventListener("click", closeAboutModal);
 }
 
+if (tutorialCloseButton) {
+    tutorialCloseButton.addEventListener("click", closeTutorialModal);
+}
+
+if (resultCloseButton) {
+    resultCloseButton.addEventListener("click", closeResultModal);
+}
+
 if (aboutModal) {
     aboutModal.hidden = true;
-    document.body.classList.remove("modal-open");
 
     aboutModal.addEventListener("click", (event) => {
         if (event.target === aboutModal) {
@@ -401,7 +515,26 @@ if (aboutModal) {
     });
 }
 
+if (tutorialModal) {
+    tutorialModal.hidden = true;
+    tutorialModal.addEventListener("click", (event) => {
+        if (event.target === tutorialModal) {
+            closeTutorialModal();
+        }
+    });
+}
+
+if (resultModal) {
+    resultModal.hidden = true;
+    resultModal.addEventListener("click", (event) => {
+        if (event.target === resultModal) {
+            closeResultModal();
+        }
+    });
+}
+
 syncModeUI();
 initBoard();
 initKeyboard();
 startNewGame();
+openTutorialModal();
