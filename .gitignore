@@ -33,7 +33,6 @@ data/*.sqlite3
 
 # Local/generated data inputs and caches
 data/cache_*.json
-data/slowa.txt
 
 # Tests
 tests/
